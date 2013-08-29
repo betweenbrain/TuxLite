@@ -78,14 +78,14 @@ EOF
             echo -e "\033[35;1mConfiguring APT for Ubuntu. \033[0m"
             cat > /etc/apt/sources.list <<EOF
 # Main repo
-deb mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE main restricted universe multiverse
-deb-src mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE main restricted universe multiverse
+deb http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ $RELEASE main restricted universe multiverse
+deb-src http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ $RELEASE main restricted universe multiverse
 
 # Security & updates
-deb mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-updates main restricted universe multiverse
-deb-src mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-updates main restricted universe multiverse
-deb mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-security main restricted universe multiverse
-deb-src mirror://mirrors.ubuntu.com/mirrors.txt $RELEASE-security main restricted universe multiverse
+deb http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ $RELEASE-updates main restricted universe multiverse
+deb-src http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ $RELEASE-updates main restricted universe multiverse
+deb http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ $RELEASE-security main restricted universe multiverse
+deb-src http://us-east-1.ec2.archive.ubuntu.com/ubuntu/ $RELEASE-security main restricted universe multiverse
 
 EOF
         fi # End if DISTRO = Ubuntu
