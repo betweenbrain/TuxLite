@@ -37,7 +37,6 @@ fi
 PUBLIC_HTML_PATH="/home/*/domains/*/public_html"
 VHOST_PATH="/home/*/domains/*"
 
-
 #### Functions Begin ####
 
 function initialize_variables {
@@ -45,6 +44,7 @@ function initialize_variables {
     # Initialize variables based on user input. For add/rem functions displayed by the menu
     DOMAINS_FOLDER="/home/$DOMAIN_OWNER/domains"
     DOMAIN_PATH="/home/$DOMAIN_OWNER/domains/$DOMAIN"
+    GIT_PATH="/home/$DOMAIN_OWNER/repos/$DOMAIN.git"
 
     # From options.conf, nginx = 1, apache = 2
     if [ $WEBSERVER -eq 1 ]; then
@@ -153,16 +153,31 @@ server {
         error_page 404 /404.html;
 
         location / {
-            # try_files \$uri \$uri/ /index.php?\$args;
+            try_files \$uri \$uri/ /index.php?\$args;
         }
 
         # Pass PHP scripts to PHP-FPM
         location ~ \.php$ {
             try_files \$uri =403;
-            fastcgi_pass unix:/var/run/php5-fpm-$DOMAIN_OWNER.sock;
+            fastcgi_pass unix:/var/run/php5-fpm-www-data.sock;
             include fastcgi_params;
             fastcgi_index index.php;
             fastcgi_param SCRIPT_FILENAME  \$document_root\$fastcgi_script_name;
+        }
+
+        # Enable browser cache for CSS / JS
+        location ~* \.(?:css|js)$ {
+            expires 2d;
+            add_header Pragma "public";
+            add_header Cache-Control "public";
+            add_header Vary "Accept-Encoding";
+        }
+
+        # Enable browser cache for static files
+        location ~* \.(?:ico|jpg|jpeg|gif|png|bmp|webp|tiff|svg|svgz|pdf|mp3|flac|ogg|mid|midi|wav|mp4|webm|mkv|ogv|wmv|eot|otf|woff|ttf|rss|atom|zip|7z|tgz|gz|rar|bz2|tar|exe|doc|docx|xls|xlsx|ppt|pptx|rtf|odt|ods|odp)$ {
+            expires 5d;
+            add_header Pragma "public";
+            add_header Cache-Control "public";
         }
 
         # Deny access to hidden files
@@ -197,15 +212,30 @@ server {
         ssl_prefer_server_ciphers on;
 
         location / {
-            # try_files \$uri \$uri/ /index.php?\$args;
+            try_files \$uri \$uri/ /index.php?\$args;
         }
 
         location ~ \.php$ {
             try_files \$uri =403;
-            fastcgi_pass unix:/var/run/php5-fpm-$DOMAIN_OWNER.sock;
+            fastcgi_pass unix:/var/run/php5-fpm-www-data.sock;
             include fastcgi_params;
             fastcgi_index index.php;
             fastcgi_param SCRIPT_FILENAME  \$document_root\$fastcgi_script_name;
+        }
+
+        # Enable browser cache for CSS / JS
+        location ~* \.(?:css|js)$ {
+            expires 2d;
+            add_header Pragma "public";
+            add_header Cache-Control "public";
+            add_header Vary "Accept-Encoding";
+        }
+
+        # Enable browser cache for static files
+        location ~* \.(?:ico|jpg|jpeg|gif|png|bmp|webp|tiff|svg|svgz|pdf|mp3|flac|ogg|mid|midi|wav|mp4|webm|mkv|ogv|wmv|eot|otf|woff|ttf|rss|atom|zip|7z|tgz|gz|rar|bz2|tar|exe|doc|docx|xls|xlsx|ppt|pptx|rtf|odt|ods|odp)$ {
+            expires 5d;
+            add_header Pragma "public";
+            add_header Cache-Control "public";
         }
 
         # Deny access to hidden files
@@ -300,6 +330,25 @@ EOF
     # Enable domain from sites-available to sites-enabled
     ln -s $DOMAIN_CONFIG_PATH $DOMAIN_ENABLED_PATH
 
+    # GIT
+    if [ $GIT_ENABLE = 'yes' ]; then
+        mkdir -p $GIT_PATH
+        cd $GIT_PATH
+        git init --bare
+        cat > hooks/post-receive <<EOF
+#!/bin/sh
+    GIT_WORK_TREE=$DOMAIN_PATH git checkout -f
+EOF
+        chmod +x hooks/post-receive
+        cd - &> /dev/null
+
+        # Set permissions
+        chown -R $DOMAIN_OWNER:$DOMAIN_OWNER $GIT_PATH
+        echo -e "\033[35;1mSuccesfully Created git repository \033[0m"
+        echo -e "\033[35;1mgit remote add web ssh://$DOMAIN_OWNER@$HOSTNAME_FQDN:$SSHD_PORT/$GIT_PATH \033[0m"
+    fi
+
+
 } # End function add_domain
 
 
@@ -333,6 +382,10 @@ function remove_domain {
     echo -e "* Removing logrotate file: \033[1m/etc/logrotate.d/$LOGROTATE_FILE\033[0m"
     sleep 1
     rm -rf /etc/logrotate.d/$LOGROTATE_FILE
+
+    echo -e "* Removing git repository: \033[1m$GIT_PATH\033[0m"
+    sleep 1
+    rm -rf $GIT_PATH
 
 } # End function remove_domain
 
